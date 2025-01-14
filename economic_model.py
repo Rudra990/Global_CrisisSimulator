@@ -38,13 +38,24 @@ def economic_collapse(gdp, unemployment, recovery_rate, intervention_days, days)
         "Unemployment": unemployment_vals,
     }
 
+# def plot_economy(data, days):
+#     plt.figure(figsize=(10, 6))
+#     plt.plot(data["GDP"], label="GDP")
+#     plt.plot(data["Unemployment"], label="Unemployment Rate (%)", linestyle="--")
+#     plt.xlabel("Days")
+#     plt.ylabel("Metrics")
+#     plt.title("Economic Collapse and Recovery Simulation")
+#     plt.legend()
+#     plt.grid()
+#     plt.show()
+
 def plot_economy(data, days):
-    plt.figure(figsize=(10, 6))
-    plt.plot(data["GDP"], label="GDP")
-    plt.plot(data["Unemployment"], label="Unemployment Rate (%)", linestyle="--")
-    plt.xlabel("Days")
-    plt.ylabel("Metrics")
-    plt.title("Economic Collapse and Recovery Simulation")
-    plt.legend()
-    plt.grid()
-    plt.show()
+    fig, ax = plt.subplots(figsize=(10, 6))  # Create a figure and axes
+    ax.plot(data["GDP"], label="GDP")
+    ax.plot(data["Unemployment"], label="Unemployment Rate (%)", linestyle="--")
+    ax.set_xlabel("Days")
+    ax.set_ylabel("Metrics")
+    ax.set_title("Economic Collapse and Recovery Simulation")
+    ax.legend()
+    ax.grid()
+    return fig  # Return the figure object

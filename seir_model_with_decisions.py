@@ -1,53 +1,80 @@
 import matplotlib.pyplot as plt
+import pandas as pd
 
+def seir_with_decisions(S0, E0, I0, R0, beta, sigma, gamma, N, days, thresholds):
+    S, E, I, R = [S0], [E0], [I0], [R0]
+    interventions_history = []  # To track interventions over time
 
-def seir_with_decisions(S, E, I, R, beta, sigma, gamma, N, days, interventions):
-    """
-    Includes dynamic interventions (e.g., lockdowns).
-    Parameters:
-        interventions: List of tuples (day, new_beta)
-    """
-    S_vals, E_vals, I_vals, R_vals = [S], [E], [I], [R]
-    interventions = sorted(interventions, key=lambda x: x[0])  # Sort interventions by day
+    for day in range(1, days):
+        # Apply SEIR model equations
+        new_infected = beta * S[-1] * I[-1] / N
+        new_recovered = gamma * I[-1]
 
-    for day in range(days):
-        # Check for interventions
-        for intervention_day, new_beta in interventions:
-            if day == intervention_day:
-                beta = new_beta
+        # Apply interventions if conditions are met
+        interventions = simulate_decisions({"I": I, "R": R}, thresholds)
 
-        dS = -beta * S * I / N
-        dE = beta * S * I / N - sigma * E
-        dI = sigma * E - gamma * I
-        dR = gamma * I
+        # Update compartments with interventions considered
+        S.append(S[-1] - new_infected)
+        E.append(E[-1] + new_infected - sigma * E[-1])
+        I.append(I[-1] + sigma * E[-1] - new_recovered)
+        R.append(R[-1] + new_recovered)
 
-        S += dS
-        E += dE
-        I += dI
-        R += dR
+        # Store interventions along with the day
+        interventions_history.append({
+            "day": day,
+            "lockdown": interventions["lockdown"],
+            "resource_allocation": interventions["resource_allocation"]
+        })
 
-        S_vals.append(S)
-        E_vals.append(E)
-        I_vals.append(I)
-        R_vals.append(R)
-
-    return {
-        "Susceptible": S_vals,
-        "Exposed": E_vals,
-        "Infected": I_vals,
-        "Recovered": R_vals,
+    # Convert results to pandas DataFrame for easier plotting with Streamlit
+    results = {
+        "S": pd.Series(S),
+        "E": pd.Series(E),
+        "I": pd.Series(I),
+        "R": pd.Series(R),
+        "interventions": interventions_history  # Save the full history of interventions
     }
 
+    return results
 
-def plot_seir(data, days):
-    plt.figure(figsize=(10, 6))
-    plt.plot(data["Susceptible"], label="Susceptible")
-    plt.plot(data["Exposed"], label="Exposed")
-    plt.plot(data["Infected"], label="Infected")
-    plt.plot(data["Recovered"], label="Recovered")
-    plt.xlabel("Days")
-    plt.ylabel("Population")
-    plt.title("SEIR Model Simulation")
-    plt.legend()
-    plt.grid()
-    plt.show()
+def simulate_decisions(results, thresholds):
+    interventions = {"lockdown": False, "resource_allocation": False}
+
+    # Print current infected and recovered values for debugging
+    print(f"Current Infected: {results['I'][-1]}, Infection Threshold: {thresholds['infection_threshold']}")
+    print(f"Current Recovered: {results['R'][-1]}, Recovery Threshold: {thresholds['recovery_threshold']}")
+
+    # If infected population exceeds a threshold, apply interventions
+    if results["I"][-1] > thresholds["infection_threshold"]:
+        interventions["lockdown"] = True
+        interventions["resource_allocation"] = True
+
+    # Optionally, implement other rules for decision-making
+    if results["R"][-1] < thresholds["recovery_threshold"]:
+        interventions["resource_allocation"] = True
+
+    # Display the intervention results to the user
+    if interventions["lockdown"]:
+        print("Lockdown applied.")
+    else:
+        print("Lockdown not applied.")
+
+    if interventions["resource_allocation"]:
+        print("Resource allocation applied.")
+    else:
+        print("Resource allocation not applied.")
+
+    return interventions
+
+def plot_seir(results, days):
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.plot(results["S"], label="Susceptible")
+    ax.plot(results["E"], label="Exposed")
+    ax.plot(results["I"], label="Infected")
+    ax.plot(results["R"], label="Recovered")
+    ax.set_xlabel("Days")
+    ax.set_ylabel("Population")
+    ax.set_title("SEIR Model")
+    ax.legend()
+    ax.grid()
+    return fig
